@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <!--basic info always included in html-->
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!--basic info ends here-->
+
+    <title>Nutrient Noobs || Account</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+
+<body>
+    <!--HEADER -- holds the navigation bar and logo-->
+    <header>
+        <div class="header">
+        
+        <!--LOGO HERE-->
+        <div class="logo">
+            <img src="{{ url_for('static', filename='Nutrient Noob Logo.png') }}">
+        </div>
+
+        <!--NAVIGATION BAR HERE-->
+        <div class="nav">
+            <ul>
+                <li><a class="active" href="{{ url_for('account') }}">Account</a></li>
+                <li><a href="{{ url_for('nutrition') }}">Nutrition</a></li>
+                <li><a href="{{ url_for('recipes') }}">Recipes</a></li>
+                <li><a href="{{ url_for('index') }}">Home</a></li>
+                <!--<li><input type="search" placeholder="Search..."></li>-->
+            </ul>
+        </div>
+        
+        <div id="user-buttons">
+            <a href="{{ url_for('login') }}">
+                <button id="login">Log In</button>
+            </a>
+            <a href="{{ url_for('signup') }}">
+                <button id="signup">Sign Up</button>
+            </a>
+        </div>
+        </div>
+
+    </header>
+
+    <main>
+        
+    </main>
+
+    <div class="sign-up" id="sign-up">
+        <div id="sign-upInfo" style="display: none;" class="sign-upInfo">
+            <div></div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            var username = sessionStorage.getItem('username');
+            if (username) {
+                var welcomeMessage = document.createElement('div');
+                welcomeMessage.setAttribute('id', 'accountMessage')
+                welcomeMessage.innerHTML = '<h1>Welcome  ' + username + '!</h1>';
+                var mainElement = document.querySelector('main');
+                mainElement.insertBefore(welcomeMessage, mainElement.firstChild);
+
+                var user_id = sessionStorage.getItem('user_id');
+                
+                fetch('/get_account_info', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({user_id: user_id})
+                })
+                .then(response => {
+                    if (response.ok) {
+                        return response.json();
+                    }
+                    throw new Error('Network response was not ok.');
+                })
+                .then(data => { //redirection of data 
+                    
+                    console.log(data);
+                    displayUserInfo(data);
+                    
+                    
+                })
+                .catch(error => {
+                    console.error('There was a problem with the fetch operation:', error);
+                });
+            }
+            else{
+                var welcomeMessage = document.createElement('div');
+                welcomeMessage.setAttribute('id', 'accountMessage')
+                welcomeMessage.innerHTML = '<h1>Welcome to Nutrient Noob, please sign in or make an account!</h1>';
+                var mainElement = document.querySelector('main');
+                mainElement.insertBefore(welcomeMessage, mainElement.firstChild);
+            }
+
+        });
+
+        // Function to display user account information on the page
+        function displayUserInfo(data) {
+            var accountInfoContainer = document.createElement('div');
+            accountInfoContainer.setAttribute('id', 'accountInfo');
+            var userInfoHTML = '<h2>User Account Information:</h2>';
+            userInfoHTML += '<p>Date Joined: ' + data.date_joined + '</p>';
+            userInfoHTML += '<p>Dietary Restrictions: ' + data.dietary_restrictions + '</p>';
+            userInfoHTML += '<p>Email: ' + data.email + '</p>';
+            userInfoHTML += '<p>Favorite Food: ' + data.favorite_food + '</p>';
+            if (data.favorite_recipes === '') {
+                userInfoHTML += '<p>Favorite Recipes: Favorited recipes will appear here!</p>';
+            } else {
+                userInfoHTML += '<p>Favorite Recipes: ' + data.favorite_recipes + '</p>';
+            }
+            if (data.favorite_ingredients === '') {
+                userInfoHTML += '<p>Favorite Ingredients: Favorited ingredients will appear here!</p>';
+            } else {
+                userInfoHTML += '<p>Favorite Ingredients: ' + data.favorite_ingredients + '</p>';
+            }
+
+            userInfoHTML += '<div id="accountButtons">';
+            userInfoHTML += '<div id="logoutButton">';
+            userInfoHTML += '<button id="logout">Logout</button>';
+            userInfoHTML += '</div>';
+            userInfoHTML += '<div id="deleteButton">';
+            userInfoHTML += '<button id="delete-account">Delete Account</button>'; // Add delete account button
+            userInfoHTML += '</div>';
+            userInfoHTML += '</div>';
+            
+            accountInfoContainer.innerHTML = userInfoHTML;
+            var mainElement = document.querySelector('main');
+            mainElement.appendChild(accountInfoContainer);
+
+            var logoutButton = document.getElementById('logout');
+            logoutButton.addEventListener('click', handleLogout);
+
+            var deleteAccountButton = document.getElementById('delete-account');
+            deleteAccountButton.addEventListener('click', handleDeleteAccount); // Add event listener for delete account button
+        }
+
+        // Function to handle logout
+        function handleLogout() {
+            var confirmLogout = confirm('Are you sure you want to logout?');
+            if (confirmLogout) {
+                sessionStorage.removeItem('user_id');
+                sessionStorage.removeItem('username');
+                window.location.href = "{{ url_for('index') }}";
+            }
+        }
+
+        // Function to handle delete account
+        function handleDeleteAccount() {
+            var confirmDelete = confirm('Are you sure you want to delete your account? This cannot be undone.');
+            if (confirmDelete) {
+                const user_id = JSON.parse(sessionStorage.getItem('user_id'));
+
+                fetch('/delete_user', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({user_id: user_id})
+                })
+                .then(response => {
+                    if (response.ok) {
+                        return response.json();
+                    }
+                    throw new Error('Network response was not ok.');
+                })
+                .then(data => {
+                    
+                    console.log(data);
+                     
+                })
+                .catch(error => {
+                    console.error('There was a problem with the fetch operation:', error);
+                });
+                sessionStorage.removeItem('user_id');
+                sessionStorage.removeItem('username');
+                alert('Account deleted successfully.'); // Placeholder for account deletion logic
+                window.location.href = "{{ url_for('index') }}"; // Redirect to homepage
+            }
+        }
+    </script>
+
+</body>
+</html>
